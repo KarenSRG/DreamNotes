@@ -17,7 +17,7 @@ class User(UserBase):
     id: int
 
     class Config:
-        orm_mode = True  # Эта настройка позволяет работать с ORM-моделями SQLAlchemy
+        from_attributes = True  # Вместо orm_mode в Pydantic 2
 
 
 # Схемы для заметок
@@ -38,10 +38,11 @@ class Note(NoteBase):
     owner_id: int  # Владелец заметки
 
     class Config:
-        orm_mode = True
+        from_attributes = True
+
+    # Схема для аутентификации (токены)
 
 
-# Схема для аутентификации (токены)
 class Token(BaseModel):
     access_token: str
     token_type: str
