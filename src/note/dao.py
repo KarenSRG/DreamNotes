@@ -2,7 +2,9 @@ import logging
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
-from fastapi import HTTPException
+from fastapi import HTTPException, Depends
+
+from src.database import get_db
 from src.note.model import Note
 from src.note.schema import NoteCreate, NoteUpdate
 from src.user.schema import UserResponse
@@ -10,7 +12,11 @@ from src.user.schema import UserResponse
 logger = logging.getLogger(__name__)
 
 
-async def create_note(session: AsyncSession, note: NoteCreate, user: UserResponse) -> Note:
+async def create_note(
+        note: NoteCreate,
+        user: UserResponse,
+        session: AsyncSession = Depends(get_db)
+) -> Note:
     db_note = Note(
         title=note.title,
         content=note.content,
@@ -39,7 +45,11 @@ async def create_note(session: AsyncSession, note: NoteCreate, user: UserRespons
     return db_note
 
 
-async def get_note_by_id(session: AsyncSession, note_id: int, user: UserResponse) -> Note:
+async def get_note_by_id(
+        note_id: int,
+        user: UserResponse,
+        session: AsyncSession = Depends(get_db)
+) -> Note:
     try:
         result = await session.execute(select(Note).filter(Note.id == note_id, Note.owner_id == user.id))
         note = result.scalars().first()
@@ -56,7 +66,12 @@ async def get_note_by_id(session: AsyncSession, note_id: int, user: UserResponse
     return note
 
 
-async def get_notes_by_owner(session: AsyncSession, owner_id: int, skip=0, limit=10) -> list[Note]:
+async def get_notes_by_owner(
+        owner_id: int,
+        skip: int = 0,
+        limit: int = 10,
+        session: AsyncSession = Depends(get_db)
+) -> list[Note]:
     try:
         result = await session.execute(select(Note).filter(Note.owner_id == owner_id).offset(skip).limit(limit))
         notes = result.scalars().all()
@@ -70,7 +85,12 @@ async def get_notes_by_owner(session: AsyncSession, owner_id: int, skip=0, limit
     return notes
 
 
-async def update_note(session: AsyncSession, note_id: int, note_update: NoteUpdate, user: UserResponse) -> Note:
+async def update_note(
+        note_id: int,
+        note_update: NoteUpdate,
+        user: UserResponse,
+        session: AsyncSession = Depends(get_db)
+) -> Note:
     """
     Обновляет существующую заметку.
     """
@@ -97,7 +117,11 @@ async def update_note(session: AsyncSession, note_id: int, note_update: NoteUpda
     return db_note
 
 
-async def delete_note(session: AsyncSession, note_id: int, user: UserResponse) -> None:
+async def delete_note(
+        note_id: int,
+        user: UserResponse,
+        session: AsyncSession = Depends(get_db)
+) -> None:
     try:
         result = await session.execute(select(Note).filter(Note.id == note_id, Note.owner_id == user.id))
         db_note = result.scalars().first()

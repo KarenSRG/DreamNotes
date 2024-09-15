@@ -1,12 +1,12 @@
 from fastapi import FastAPI
 
-from src.note import router as note_router
-from src.user import router as user_router
+from src.note.router import router as note_router
+from src.user.router import router as user_router
 
 app = FastAPI()
 
-app.include_router(note_router, prefix="/api/notes", tags=["notes"])
-app.include_router(user_router, prefix="/api/user", tags=["user"])
+app.include_router(note_router, prefix="/api", tags=["notes"])
+app.include_router(user_router, prefix="/api", tags=["user"])
 
 
 @app.get("/")

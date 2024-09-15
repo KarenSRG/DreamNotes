@@ -2,8 +2,9 @@ import logging
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
-from fastapi import HTTPException
+from fastapi import HTTPException, Depends
 
+from src.database import get_db
 from src.user.model import User
 from src.user.schema import UserCreate
 from src.utils.password_hashing import hash_password

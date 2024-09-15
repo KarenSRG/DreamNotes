@@ -4,7 +4,7 @@ from src.database import Base
 
 
 class User(Base):
-    __tablename__ = "user"
+    __tablename__ = "users"
 
     id = mapped_column(Integer, primary_key=True, index=True)
     username = mapped_column(String, unique=True)
