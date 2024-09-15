@@ -2,9 +2,12 @@ from datetime import timedelta
 
 from fastapi import APIRouter, HTTPException, Depends
 from fastapi.security import OAuth2PasswordRequestForm
+from fastapi_limiter.depends import RateLimiter
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.config import ACCESS_TOKEN_EXPIRE_MINUTES
+from src.config import REQUEST_LIMIT_PER_MINUTE as rl_tms
+
 from src.database import get_db
 from src.user import dao
 from src.user.auth import create_access_token
@@ -15,7 +18,11 @@ from src.utils.password_hashing import verify_password
 router = APIRouter()
 
 
-@router.post("/users/token", response_model=Token)
+@router.post(
+    "/users/token",
+    response_model=Token,
+    dependencies=[Depends(RateLimiter(times=rl_tms, seconds=60))]
+)
 async def login(
         form_data: OAuth2PasswordRequestForm = Depends(),
         db: AsyncSession = Depends(get_db)
@@ -32,7 +39,11 @@ async def login(
     return {"access_token": access_token, "token_type": "bearer"}
 
 
-@router.post("/users/", response_model=UserResponse)
+@router.post(
+    "/users/",
+    response_model=UserResponse,
+    dependencies=[Depends(RateLimiter(times=rl_tms, seconds=60))]
+)
 async def create_user(
         user: UserCreate,
         db: AsyncSession = Depends(get_db)
@@ -40,7 +51,11 @@ async def create_user(
     return await dao.create_user(db, user)
 
 
-@router.get("/users/{user_id}", response_model=UserResponse)
+@router.get(
+    "/users/{user_id}",
+    response_model=UserResponse,
+    dependencies=[Depends(RateLimiter(times=rl_tms, seconds=60))]
+)
 async def read_user_by_id(
         user_id: int,
         db: AsyncSession = Depends(get_db)

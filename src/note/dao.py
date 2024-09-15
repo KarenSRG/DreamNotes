@@ -1,13 +1,10 @@
-import logging
-
 from sqlalchemy import and_
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
-from fastapi import HTTPException, Depends
+from fastapi import HTTPException
 
-from src.database import get_db
-from src.logging_config import logger
+from src.utils.logging_config import logger
 from src.note.model import Note
 from src.note.schema import NoteCreate, NoteUpdate
 from src.user.schema import UserResponse

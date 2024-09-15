@@ -1,11 +1,12 @@
-import logging
 from fastapi import APIRouter, Depends, HTTPException, status
 from typing import List
 
+from fastapi_limiter.depends import RateLimiter
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.config import REQUEST_LIMIT_PER_MINUTE as rl_tms
+
 from src.database import get_db
-from src.logging_config import logger
 from src.note.schema import NoteCreate, NoteUpdate, NoteResponse
 from src.note import dao
 from src.user.auth import get_current_user
@@ -14,7 +15,11 @@ from src.user.model import User
 router = APIRouter()
 
 
-@router.post("/notes/", response_model=NoteResponse)
+@router.post(
+    "/notes/",
+    response_model=NoteResponse,
+    dependencies=[Depends(RateLimiter(times=rl_tms, seconds=60))]
+)
 async def create_note(
         note: NoteCreate,
         user: User = Depends(get_current_user),
@@ -25,7 +30,11 @@ async def create_note(
     return db_note
 
 
-@router.get("/notes/", response_model=List[NoteResponse])
+@router.get(
+    "/notes/",
+    response_model=List[NoteResponse],
+    dependencies=[Depends(RateLimiter(times=rl_tms, seconds=60))]
+)
 async def read_notes(
         skip: int = 0,
         limit: int = 10,
@@ -38,7 +47,11 @@ async def read_notes(
     return notes
 
 
-@router.get("/notes/{prompt}", response_model=List[NoteResponse])
+@router.get(
+    "/notes/{prompt}",
+    response_model=List[NoteResponse],
+    dependencies=[Depends(RateLimiter(times=rl_tms, seconds=60))]
+)
 async def read_notes_by_tag(
         prompt: str,
         skip: int = 0,
@@ -54,7 +67,11 @@ async def read_notes_by_tag(
     return notes
 
 
-@router.get("/notes/{note_id}", response_model=NoteResponse)
+@router.get(
+    "/notes/{note_id}",
+    response_model=NoteResponse,
+    dependencies=[Depends(RateLimiter(times=rl_tms, seconds=60))]
+)
 async def read_note(
         note_id: int,
         user: User = Depends(get_current_user),
@@ -69,7 +86,11 @@ async def read_note(
     return note
 
 
-@router.put("/notes/{note_id}", response_model=NoteResponse)
+@router.put(
+    "/notes/{note_id}",
+    response_model=NoteResponse,
+    dependencies=[Depends(RateLimiter(times=rl_tms, seconds=60))]
+)
 async def update_note(
         note_id: int,
         note_update: NoteUpdate,
@@ -86,7 +107,11 @@ async def update_note(
     return note
 
 
-@router.delete("/notes/{note_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete(
+    "/notes/{note_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    dependencies=[Depends(RateLimiter(times=rl_tms, seconds=60))]
+)
 async def delete_note(
         note_id: int,
         user: User = Depends(get_current_user),
