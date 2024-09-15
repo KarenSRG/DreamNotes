@@ -82,7 +82,7 @@ async def update_note(
     if note is None:
         raise HTTPException(status_code=404, detail="Note not found")
 
-    note.tags = note_update.tags
+    note.tags = note.tags.split(",") if note.tags != "" else []
     return note
 
 
