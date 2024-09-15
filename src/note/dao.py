@@ -7,11 +7,10 @@ from sqlalchemy.future import select
 from fastapi import HTTPException, Depends
 
 from src.database import get_db
+from src.logging_config import logger
 from src.note.model import Note
 from src.note.schema import NoteCreate, NoteUpdate
 from src.user.schema import UserResponse
-
-logger = logging.getLogger(__name__)
 
 
 async def create_note(
@@ -97,8 +96,8 @@ async def get_notes_by_tags(
 
 
 async def get_notes_by_owner(
-        owner_id: int,
         session: AsyncSession,
+        owner_id: int,
         skip: int = 0,
         limit: int = 10,
 

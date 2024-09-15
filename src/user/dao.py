@@ -2,14 +2,12 @@ import logging
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
-from fastapi import HTTPException, Depends
+from fastapi import HTTPException
 
-from src.database import get_db
+from src.logging_config import logger
 from src.user.model import User
 from src.user.schema import UserCreate
 from src.utils.password_hashing import hash_password
-
-logger = logging.getLogger(__name__)
 
 
 async def create_user(session: AsyncSession, user: UserCreate) -> User:
