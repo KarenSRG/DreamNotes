@@ -1,4 +1,6 @@
 import logging
+
+from sqlalchemy import and_
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
@@ -13,9 +15,9 @@ logger = logging.getLogger(__name__)
 
 
 async def create_note(
+        session: AsyncSession,
         note: NoteCreate,
-        user: UserResponse,
-        session: AsyncSession
+        user: UserResponse
 ) -> Note:
     db_note = Note(
         title=note.title,
@@ -42,14 +44,14 @@ async def create_note(
         await session.rollback()
         logger.error(f"Unexpected error while creating note: {e}")
         raise HTTPException(status_code=500, detail="Internal Server Error")
-    db_note.tags = note.tags
     return db_note
 
 
 async def get_note_by_id(
+        session: AsyncSession,
         note_id: int,
-        user: UserResponse,
-        session: AsyncSession
+        user: UserResponse
+
 ) -> Note:
     try:
         result = await session.execute(select(Note).filter(Note.id == note_id, Note.owner_id == user.id))
@@ -62,6 +64,36 @@ async def get_note_by_id(
         logger.error(f"SQLAlchemy error while retrieving note: {e}")
         raise HTTPException(status_code=500, detail="Internal Server Error")
     return note
+
+
+async def get_notes_by_tags(
+        session: AsyncSession,
+        owner_id: int,
+        prompt: str,
+        skip: int = 0,
+        limit: int = 10,
+
+) -> list[Note]:
+    try:
+        print(prompt)
+        result = await session.execute(
+            select(Note).filter(
+                and_(
+                    Note.owner_id == owner_id,
+                    Note.tags.ilike(f'%,{prompt},%') |
+                    Note.tags.ilike(f'{prompt},%') |
+                    Note.tags.ilike(f'%,{prompt}') |
+                    Note.tags.ilike(f'{prompt}')
+                )
+            ).offset(skip).limit(limit))
+
+        notes = result.scalars().all()
+        logger.info(f"Retrieved {len(notes)} notes for user ID: {owner_id}")
+    except SQLAlchemyError as e:
+        logger.error(f"SQLAlchemy error while retrieving notes: {e}")
+        raise HTTPException(status_code=500, detail="Internal Server Error")
+
+    return notes
 
 
 async def get_notes_by_owner(
@@ -78,26 +110,26 @@ async def get_notes_by_owner(
     except SQLAlchemyError as e:
         logger.error(f"SQLAlchemy error while retrieving notes: {e}")
         raise HTTPException(status_code=500, detail="Internal Server Error")
-    except Exception as e:
-        logger.error(f"Unexpected error while retrieving notes: {e}")
-        raise HTTPException(status_code=500, detail="Internal Server Error")
     return notes
 
 
 async def update_note(
+        session: AsyncSession,
         note_id: int,
         note_update: NoteUpdate,
-        user: UserResponse,
-        session: AsyncSession
+        user: UserResponse
+
 ) -> Note:
-    """
-    Обновляет существующую заметку.
-    """
     try:
-        result = await session.execute(select(Note).filter(Note.id == note_id, Note.owner_id == user.id))
+        result = await session.execute(
+            select(Note).filter(
+                Note.id == note_id,
+                Note.owner_id == user.id)
+        )
         db_note = result.scalars().first()
         if db_note is None:
             logger.warning(f"Note with ID: {note_id} not found for user ID: {user.id}")
+            await session.rollback()
             raise HTTPException(status_code=404, detail="Note not found")
         for var, value in vars(note_update).items():
             setattr(db_note, var, value) if value is not None else None
@@ -109,32 +141,35 @@ async def update_note(
         await session.rollback()
         logger.error(f"SQLAlchemy error while updating note: {e}")
         raise HTTPException(status_code=500, detail="Internal Server Error")
-    except Exception as e:
-        await session.rollback()
-        logger.error(f"Unexpected error while updating note: {e}")
-        raise HTTPException(status_code=500, detail="Internal Server Error")
     return db_note
 
 
 async def delete_note(
+        session: AsyncSession,
         note_id: int,
-        user: UserResponse,
-        session: AsyncSession
+        user: UserResponse
+
 ) -> None:
     try:
-        result = await session.execute(select(Note).filter(Note.id == note_id, Note.owner_id == user.id))
+
+        result = await session.execute(
+            select(Note).filter(
+                Note.id == note_id,
+                Note.owner_id == user.id)
+        )
+
         db_note = result.scalars().first()
+
         if db_note is None:
             logger.warning(f"Note with ID: {note_id} not found for user ID: {user.id}")
             raise HTTPException(status_code=404, detail="Note not found")
+
         await session.delete(db_note)
         await session.commit()
+
         logger.info(f"Note deleted with ID: {note_id} by user ID: {user.id}")
+
     except SQLAlchemyError as e:
         await session.rollback()
         logger.error(f"SQLAlchemy error while deleting note: {e}")
-        raise HTTPException(status_code=500, detail="Internal Server Error")
-    except Exception as e:
-        await session.rollback()
-        logger.error(f"Unexpected error while deleting note: {e}")
         raise HTTPException(status_code=500, detail="Internal Server Error")
