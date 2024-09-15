@@ -1,28 +1,32 @@
-from sqlalchemy import Column, Integer, String, ForeignKey, DateTime
-from sqlalchemy.orm import relationship
-import datetime
+from sqlalchemy import Integer, String, Text, DateTime, ForeignKey
+from sqlalchemy.orm import mapped_column, relationship
+from sqlalchemy.ext.declarative import declarative_base
+from datetime import datetime
 
-from app.database import Base
+Base = declarative_base()
 
 
 class User(Base):
-    __tablename__ = "users"
+    __tablename__ = 'users'
 
-    id = Column(Integer, primary_key=True, index=True)
-    username = Column(String, unique=True, index=True)
-    email = Column(String, unique=True, index=True)
-    hashed_password = Column(String)
+    id = mapped_column(Integer, primary_key=True)
+    username = mapped_column(String(50), unique=True, index=True)
+    email = mapped_column(String(100), unique=True, index=True)
+    hashed_password = mapped_column(String(100))  # Сохраняем хэшированный пароль
+
+    notes = relationship('Note', back_populates='owner')
 
 
 class Note(Base):
-    __tablename__ = "notes"
+    __tablename__ = 'notes'
 
-    id = Column(Integer, primary_key=True, index=True)
-    title = Column(String, index=True)
-    content = Column(String)
-    tags = Column(String)  # Сохранение тегов как строки, разделённой запятыми
-    created_at = Column(DateTime, default=datetime.datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.datetime.utcnow)
-    owner_id = Column(Integer, ForeignKey("users.id"))
+    id = mapped_column(Integer, primary_key=True)
+    title = mapped_column(String(100))
+    content = mapped_column(Text)
+    tags = mapped_column(
+        String(200))  # Сохранение тегов как строка. Можете использовать другой способ хранения, например, JSON
+    created_at = mapped_column(DateTime, default=datetime.utcnow)
+    updated_at = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    owner_id = mapped_column(Integer, ForeignKey('users.id'))
 
-    owner = relationship("User")
+    owner = relationship('User', back_populates='notes')
