@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 async def create_note(
         note: NoteCreate,
         user: UserResponse,
-        session: AsyncSession = Depends(get_db)
+        session: AsyncSession
 ) -> Note:
     db_note = Note(
         title=note.title,
@@ -42,13 +42,14 @@ async def create_note(
         await session.rollback()
         logger.error(f"Unexpected error while creating note: {e}")
         raise HTTPException(status_code=500, detail="Internal Server Error")
+    db_note.tags = note.tags
     return db_note
 
 
 async def get_note_by_id(
         note_id: int,
         user: UserResponse,
-        session: AsyncSession = Depends(get_db)
+        session: AsyncSession
 ) -> Note:
     try:
         result = await session.execute(select(Note).filter(Note.id == note_id, Note.owner_id == user.id))
@@ -60,17 +61,15 @@ async def get_note_by_id(
     except SQLAlchemyError as e:
         logger.error(f"SQLAlchemy error while retrieving note: {e}")
         raise HTTPException(status_code=500, detail="Internal Server Error")
-    except Exception as e:
-        logger.error(f"Unexpected error while retrieving note: {e}")
-        raise HTTPException(status_code=500, detail="Internal Server Error")
     return note
 
 
 async def get_notes_by_owner(
         owner_id: int,
+        session: AsyncSession,
         skip: int = 0,
         limit: int = 10,
-        session: AsyncSession = Depends(get_db)
+
 ) -> list[Note]:
     try:
         result = await session.execute(select(Note).filter(Note.owner_id == owner_id).offset(skip).limit(limit))
@@ -89,7 +88,7 @@ async def update_note(
         note_id: int,
         note_update: NoteUpdate,
         user: UserResponse,
-        session: AsyncSession = Depends(get_db)
+        session: AsyncSession
 ) -> Note:
     """
     Обновляет существующую заметку.
@@ -120,7 +119,7 @@ async def update_note(
 async def delete_note(
         note_id: int,
         user: UserResponse,
-        session: AsyncSession = Depends(get_db)
+        session: AsyncSession
 ) -> None:
     try:
         result = await session.execute(select(Note).filter(Note.id == note_id, Note.owner_id == user.id))

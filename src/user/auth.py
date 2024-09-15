@@ -1,6 +1,8 @@
+import logging
 from datetime import datetime, timedelta
 from typing import Union, Annotated
 
+import pytz
 from fastapi import HTTPException, Depends
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
@@ -19,9 +21,9 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/users/token")
 def create_access_token(data: dict, expires_delta: Union[timedelta, None] = None) -> str:
     to_encode = data.copy()
     if expires_delta:
-        expire = datetime.now() + expires_delta
+        expire = datetime.now(pytz.UTC) + expires_delta
     else:
-        expire = datetime.now() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+        expire = datetime.now(pytz.UTC) + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     to_encode.update({"exp": expire})
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
@@ -29,8 +31,7 @@ def create_access_token(data: dict, expires_delta: Union[timedelta, None] = None
 
 def decode_access_token(token: str) -> dict:
     try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        return payload
+        return jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
     except JWTError:
         raise HTTPException(status_code=401, detail="Invalid token or expired token")
 
@@ -43,14 +44,17 @@ async def get_current_user(
         status_code=401,
         detail="Could not validate credentials",
     )
+
     try:
         payload = decode_access_token(token)
-        user_id: int = payload.get("sub")
+        user_id: int = int(payload.get("sub"))
         if user_id is None:
             raise credentials_exception
-        user = await dao.get_user_by_id(user_id, db)
+        user = await dao.get_user_by_id(db, user_id)
         if user is None:
             raise credentials_exception
+
         return user
+
     except JWTError:
         raise credentials_exception
