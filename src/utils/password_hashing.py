@@ -1,5 +1,6 @@
 from passlib.context import CryptContext
 
+# Инициализация контекста для хэширования паролей
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 

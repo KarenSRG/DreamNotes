@@ -14,13 +14,19 @@ class NoteCreate(NoteBase):
 
 
 class NoteUpdate(NoteBase):
-    pass
+    title: Optional[str] = None
+    content: Optional[str] = None
+    tags: Optional[List[str]] = None
+
+    class Config:
+        from_attributes = True
 
 
 class NoteResponse(NoteBase):
     id: int
     created_at: datetime
     updated_at: datetime
+    owner_id: int
 
     class Config:
-        orm_mode = True
+        from_attributes = True

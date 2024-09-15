@@ -7,12 +7,11 @@ from pathlib import Path
 from sqlalchemy import engine_from_config, pool
 from alembic import context
 
-app_path = Path(__file__).resolve().parent.parent / 'app'
+app_path = Path(__file__).resolve().parent.parent / 'src'
 sys.path.insert(0, str(app_path))
 
-from app.config import DATABASE_URL
-from app.database import Base
-from app.models import User, Note
+from src.config import DATABASE_URL
+from src.database import Base
 
 target_metadata = Base.metadata
 
